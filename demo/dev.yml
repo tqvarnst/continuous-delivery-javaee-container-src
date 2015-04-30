@@ -1,0 +1,7 @@
+dev:
+  build: images/appserver-dev
+  ports:
+    - "8080:8080"
+    - "9990:9990"
+    - "9999:9999"
+

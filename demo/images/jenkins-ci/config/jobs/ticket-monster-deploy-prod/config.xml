@@ -1,0 +1,43 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<project>
+  <actions/>
+  <description></description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <hudson.model.ParametersDefinitionProperty>
+      <parameterDefinitions>
+        <hudson.model.StringParameterDefinition>
+          <name>ARTIFACT_VERSION</name>
+          <description>This is the version of artefact created in the release step</description>
+          <defaultValue></defaultValue>
+        </hudson.model.StringParameterDefinition>
+      </parameterDefinitions>
+    </hudson.model.ParametersDefinitionProperty>
+    <se.diabol.jenkins.pipeline.PipelineProperty plugin="delivery-pipeline-plugin@0.8.6">
+      <taskName>Create container &amp; Deploy</taskName>
+      <stageName>PRODUCTION</stageName>
+    </se.diabol.jenkins.pipeline.PipelineProperty>
+  </properties>
+  <scm class="hudson.scm.NullSCM"/>
+  <canRoam>true</canRoam>
+  <disabled>false</disabled>
+  <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
+  <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+  <triggers/>
+  <concurrentBuild>false</concurrentBuild>
+  <builders>
+    <hudson.tasks.Shell>
+      <command>wget -O ticket-monster.war &quot;http://nexus:8081/nexus/service/local/artifact/maven/redirect?r=releases&amp;g=org.jboss.examples&amp;a=ticket-monster&amp;v=$ARTIFACT_VERSION&amp;e=war&quot;
+
+
+scp -i /var/lib/jenkins/.ssh/id_rsa -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no ticket-monster.war root@hpc-dl160a-01.mw.lab.eng.bos.redhat.com:docker-javaee-demo/demo/images/appserver-prod/
+
+
+ssh -i /var/lib/jenkins/.ssh/id_rsa -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no root@hpc-dl160a-01.mw.lab.eng.bos.redhat.com &apos;cd /root/docker-javaee-demo/demo &amp;&amp; docker-compose -f prod.yml build&apos;
+
+ssh -i /var/lib/jenkins/.ssh/id_rsa -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no root@hpc-dl160a-01.mw.lab.eng.bos.redhat.com &apos;cd /root/docker-javaee-demo/demo &amp;&amp; docker-compose -f prod.yml up -d&apos;</command>
+    </hudson.tasks.Shell>
+  </builders>
+  <publishers/>
+  <buildWrappers/>
+</project>

@@ -1,0 +1,6 @@
+systest:
+  build: images/appserver-systest
+  ports:
+    - "18080:8080"
+    - "19990:9990"
+

@@ -1,0 +1,17 @@
+base:
+  build: images/base
+
+appserverbase:
+  build: images/appserverbase
+
+jenkinsbase:
+  build: images/jenkinsbase
+
+jenkins:
+  build: images/jenkins-ci
+
+dev:
+  build: images/appserver-dev
+
+prod:
+  build: images/appserverbase

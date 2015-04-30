@@ -1,0 +1,5 @@
+prod:
+  build: images/appserver-prod
+  ports:
+    - "28080:8080"
+    - "29990:9990"
