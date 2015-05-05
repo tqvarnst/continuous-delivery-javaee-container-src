@@ -8,12 +8,6 @@ FROM demo_jenkinsbase
 
 MAINTAINER Thomas Qvarnstrom <tqvarnst@redhat.com>
 
-# Copy SSH Key Pair
-ADD config/.ssh /var/lib/jenkins/.ssh
-RUN chown -R jenkins:jenkins /var/lib/jenkins/.ssh/
-RUN chmod 755 /var/lib/jenkins/.ssh/
-RUN chmod 600 /var/lib/jenkins/.ssh/id_rsa*
-
 # Install Plugins
 RUN wget -O /var/lib/jenkins/plugins/build-pipeline-plugin.hpi 		http://updates.jenkins-ci.org/download/plugins/build-pipeline-plugin/1.4.3/build-pipeline-plugin.hpi
 RUN wget -O /var/lib/jenkins/plugins/jquery.hpi 			http://updates.jenkins-ci.org/download/plugins/jquery/1.7.2-1/jquery.hpi
@@ -72,6 +66,12 @@ RUN sed -i "s/JENKINS_JAVA_OPTIONS/#JENKINS_JAVA_OPTIONS/g" /etc/sysconfig/jenki
 RUN echo "JENKINS_JAVA_OPTIONS=\"-Djava.awt.headless=true -Djsse.enableSNIExtension=false\"" >> /etc/sysconfig/jenkins
 RUN echo "JENKINS_PORT=9080" >> /etc/sysconfig/jenkins
 #RUN echo "JENKINS_AJP_PORT=-1  #DISABLE AJP" >> /etc/sysconfig/jenkins
+
+# Copy SSH Key Pair
+# JA Bride:  this .ssh directory doesn't exist, instead will use ssh-keygen to generate
+# ADD config/.ssh /var/lib/jenkins/.ssh
+RUN mkdir /var/lib/jenkins/.ssh
+RUN ssh-keygen -q -f /var/lib/jenkins/.ssh/id_rsa -t rsa -N ''
 
 # Set Permissions
 RUN chown -R jenkins:jenkins /var/lib/jenkins

@@ -25,10 +25,10 @@ ENV JAVA_HOME /usr/lib/jvm/java
 ENV EAP_VERSION 6.4.0
 
 # Add JBoss EAP binary
-# No longer accessing from download.eng.bos.redhat.com due to requirement of being on Red Hat VPN
+# JA Bride: No longer accessing from download.eng.bos.redhat.com due to requirement of being on Red Hat VPN
 # RUN wget -O /tmp/jboss-eap-${EAP_VERSION}.zip http://download.eng.bos.redhat.com/released/JBEAP-6/${EAP_VERSION}/jboss-eap-${EAP_VERSION}.zip
 
-ADD resources/jboss-eap-${EAP_VERSION}.zip /tmp
+ADD resources/jboss-eap-${EAP_VERSION}.zip /tmp/jboss-eap-${EAP_VERSION}.zip
 RUN /usr/bin/unzip -q /tmp/jboss-eap-${EAP_VERSION}.zip -d /opt/jboss
 
 RUN mv /opt/jboss/jboss-eap-* /opt/jboss/jboss-eap-${EAP_VERSION} 
