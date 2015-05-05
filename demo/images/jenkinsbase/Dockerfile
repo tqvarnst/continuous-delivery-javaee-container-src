@@ -1,4 +1,6 @@
-FROM centos:centos6
+# JA Bride:  changed to RHEL7
+#FROM centos:centos6
+FROM rhel7.1
 
 MAINTAINER Thomas Qvarnstrom <tqvarnst@redhat.com>
 
@@ -9,7 +11,7 @@ RUN yum -y update; yum clean all
 ##########################################################
 # Install Java JDK and other useful cmdline utilities
 ##########################################################
-RUN yum -y install java-1.7.0-openjdk-devel which unzip sudo openssh-clients iputils iproute httpd-tools wget tar; yum clean all
+RUN yum -y install java-1.7.0-openjdk-devel which unzip sudo openssh-clients iputils iproute httpd-tools wget tar initscripts; yum clean all
 ENV JAVA_HOME /usr/lib/jvm/jre
 
 ############################################
