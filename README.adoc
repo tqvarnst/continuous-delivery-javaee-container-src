@@ -1,7 +1,74 @@
-# continuous-delivery-javaee-container-src
+= *continuous-delivery-javaee-container-src*
 
-**Note:** This is currently **not** a working demo that you can download and run. You can however from the source code figure out how to run the demo. As soon as times allows I will add instruction on how to get this running like a demo.
+:data-uri:
+:toc: manual
+:toc-placement: preamble
+:numbered:
+:webinar: link:http://blog.eisele.net/2015/04/continuous-delivery-with-docker.html[Continuous Delivery with Docker Containers & Java EE webinar]
+:dcompose: link:https://docs.docker.com/compose/[Docker Compose]
+:ticketmonster: link:http://www.jboss.org/ticket-monster/[Ticket Monster]
 
-This repository contians the source code from the "Continuous Delivery with Docker Containers and Java EE" webinar that I (Thomas Qvarnstrom) and Markus Eisele preseted the 28th of April. For more information and recordings etc see Markus Eisele blog article about the webinar [here](http://blog.eisele.net/2015/04/continuous-delivery-with-docker.html)
+This repository contains the source code from the {webinar} that I (Thomas Qvarnstrom) and Markus Eisele presented the 28th of April.
 
+== Overview
 
+=== *Goals*
+=== *Ticket Monster* JEE project
+
+The {ticketmonster} JEE project is a moderately complex application that demonstrates how to build modern applications using JBoss web technologies.
+
+=== Deployment Diagram
+
+== Pre-requisites
+
+. *Network Bandwidth*
++
+During this lab exercise, Docker images will be pulled from the internet.
+You'll want a high-speed broadband connection and open access to the internet.
+. *Hardware*
++
+To execute this lab exercise, three machines will be needed.
+Each machine should consist of a minimum of 2 cores and 4G RAM.
+The machines can run locally or as VMs in a cloud environment.
+
+. *Docker*
+. *{dcompose}*
+
+== *dev-env* environment
+
+=== Review *dev-env* Images
+==== *Sonar*
+==== *Nexus*
+==== *Jenkins*
+
+=== Clone this project
+
+[NOTE]
+For the purpose of this exercise, the directory created from having cloned this project will be referred to as $PROJECT_HOME.
+
+=== Build *dev-env* images
+
+. cd $PROJECT_HOME/demo
+. docker-compose -f baseimages.yml build
+
+=== Start *dev-env* containers
+
+docker-compose -f dev-env.yml up -d
+
+== *systest* environment
+
+== *prod* environemnt
+
+== Ticket Monster Delivery Pipeline
+
+=== Overview
+
+=== Start *ticket-monster-build*
+
+=== Real-World Considerations
+
+==== *ticket-monster-build* initiation
+==== Email set-up
+==== Human Task: systest -> prod
+
+== Conclusion
