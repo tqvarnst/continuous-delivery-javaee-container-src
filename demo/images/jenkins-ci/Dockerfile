@@ -77,3 +77,9 @@ RUN echo "JENKINS_PORT=9080" >> /etc/sysconfig/jenkins
 RUN chown -R jenkins:jenkins /var/lib/jenkins
 
 EXPOSE 9080
+
+USER jenkins
+RUN git config --global user.email "jenkins@redhatjboss.com"
+RUN git config --global user.name "jenkins"
+
+USER root
