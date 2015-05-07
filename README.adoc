@@ -8,17 +8,25 @@
 :dcompose: link:https://docs.docker.com/compose/[Docker Compose]
 :ticketmonster: link:http://www.jboss.org/ticket-monster/[Ticket Monster]
 :supportportal: link:https://access.redhat.com/support[Red Hat Support Portal]
+:jbossdemocentral: link:https://www.gitub.com/jbossdemocentral/continuos-delivery-demo-app[jbossdemocentral]
+:markusblog: link:http://blog.eisele.net/2015/04/continuous-delivery-with-docker.html[Markus' Blog]
 
 This repository contains the source code and step-by-step instructions needed to reproduce the {webinar}.
 
 == Overview
 
 === *Goals*
+Discussed in detail in {markusblog}.
+
 === *Ticket Monster* JEE project
 
 The {ticketmonster} JEE project is a moderately complex application that demonstrates how to build modern applications using JBoss web technologies.
 
+Continouos Delivery from dev -> prod in a Docker environment will be demonstrated using the ticket-monster JEE application.
+
 === Deployment Diagram
+
+*TO-DO*
 
 == Pre-requisites
 
@@ -44,19 +52,62 @@ The RHEL7 hosts should be registered with the Red Hat Network (RHN) via _subscri
 +
 In the near future, Red Hat will be providing a _RHEL CDK_ (Container Development Kit).
 The RHEL CDK will allow for building of images in this project on host operating systems such as Fedora, OSX and Windows.
+. *github account*
++
+A `github` account will be needed to fork the original `ticket-monster` source code
 . *git*
 +
-Ensure that `git` is installed on the host operating system.
+Ensure that `git` is installed on the operating system of all machines.
 . *Docker*
 +
-Ensure that `docker` is installed and running on the host operating system.
+Ensure that `docker` is installed and running on the operating system of all machines
 . *{dcompose}*
++
+`docker-compose` is a handy utility for defining and running complex applications with Docker.
+It is not a {{paas}}.
+However, it does a nice job of facilitating the use of multiple Docker containers in this `Continuous Delivery` exercise.
 
-[[baseimages]]
-== *baseimages*
+== `ticket-monster` project
+Continouos Delivery from dev -> prod is demonstrated using the {ticketmonster} JEE application.
 
-=== Clone this project
+During the `release` stage, the release version of the `ticket-monster` project is updated (ie: 2.6.49-SNAPSHOT -> 2.6.49.Final).
+This change is version controlled.
+Subsequently, a git repository of the `ticket-monster` application is needed to push these release changes to.
 
+The source to the `ticket-monster` application can be found in Red Hat's {jbossdemocentral}.
+This git repository is public (any git client can clone the project) however direct commit access to this repository is controlled.
+You'll want to utilize a version of the `ticket-monster` application that you can modify.
+
+[[forkticketmonster]]
+=== Fork `ticket-monster` project
+
+
+You'll want to fork the `ticket-monster` project using your own github account:
+
+. In your browser, navigate to:  `https://github.com/jbossdemocentral/continuous-delivery-demo-app`
+. Authenticate into gitub.
+. On the far right, click `Fork`
++
+image::doc/images/forkettmaster.png[]
+. After a few seconds, a fork of the `ticket-monster` app will appear in your own github account.
+. Make note of the clone URL to your forked repository.
+You'll make use of this URL through this exercise.
+
+=== Modify `ticket-monster` pom.xml
+The `pom.xml of the `ticket-monster` project includes references to the original git repository in `jbossdemocentral` .
+These references should be changed.
+
+. Clone the forked `ticket-monster` project to your local workstation.
+. Using your favorite text editor, edit the following section of:  `continuous-delivery-demo-app/pom.xml`:
++
+image::doc/images/pom.png[]
++
+In particular, change all of the URLs in the `scm` section such that they reference your forked repository.
+. Commit and push the change to your forked git repository.
+
+== Build and Start Docker Containers
+
+==== Clone this project
 ----
 git clone https://github.com/jbossdemocentral/continuous-delivery-javaee-container-src.git
 ----
@@ -66,7 +117,11 @@ Doing so creates a directory on your local workstation called:  _continuous-deli
 [NOTE]
 For the purpose of the instructions in this exercise, the directory created from having cloned this project will be referred to as: *$PROJECT_HOME*.
 
-=== Build *baseimages*
+
+[[baseimages]]
+=== *baseimages*
+
+==== Build *baseimages*
 Docker images from this project need to be built prior to the creation of docker containers that support our `dev-env`, `systest` and `prod` environments.
 
 Docker-compose is used to build the Docker images included in this project.
@@ -115,16 +170,17 @@ The output should appear similar to the following:
 image::doc/images/baseimages.png[]
 
 
-== *dev-env* environment
-
-=== Review *dev-env* Images
-==== *Sonar*
-==== *Nexus*
-==== *Jenkins*
+=== *dev-env* environment
 
 
+==== Review *dev-env* Images
+===== *Sonar*
+===== *Nexus*
+===== *Jenkins*
 
-=== Start *dev-env* containers
+
+
+==== Start *dev-env* containers
 
 . cd $PROJECT_HOME/demo
 . docker-compose -f dev-env.yml up -d
@@ -169,11 +225,43 @@ http://<address_of_dev_machine>:9000
 +
 image::doc/images/sonar.png[]
 
-== *systest* environment
+==== Modify Jenkins Jobs with new `ticket-monster` URL
+Several of the jobs that come pre-configured in the `jenkins-demo-1` container reference the source code to the Red Hat managed `ticket-monster` application in github.
+All of these jenkins jobs should be using your forked repo as discussed in the section: <<forkticketmonster>>.
 
-=== Review *systest* Images
+Of particular importance is the Jenkins job: `ticket-monster-release`.
+The `ticket-monster-release` job is responsible for creating a release of the latest `ticket-monster` application.
 
-=== Start *systest* containers
+The `ticket-monster-release` job updates the `version` in the pom.xml of the application and pushes this change back to the `ticket-monster` git repository.
+Subsequently, your Jenkins jobs will need commit access to a `ticket-monster` git repository.
+
+Using the clone URL of your forked `ticket-monster` project, modify the Jenkins jobs as follows:
+
+. In your browser, navigate to the jenkins dashboard.
+. Click the `ticket-monster-analysis link`
++
+image::doc/images/tmonsteranalysis.png[]
+. On the left panel, click `Configure`
+. Scroll down to the `Source Code Management` section
+. `Git` should already be selected as the repository type.
+. Replace the value of the `Repository URL` with the URL of your forked `ticket-monster` repository in github.
++
+image::doc/images/scm.png[]
+. Under the `Credentials` text box, click the `Add` button
+. In the `Add Credentials` pop-up, populate with your preferred mechanism to authenticate into gihub (ie:  username/password or ssh keys)
+. Scroll to the bottom and click `Save`
+
+Repeat the above procedure for the following additional Jenkins jobs:
+
+. *ticket-monster-build*
+. *ticket-monster-release*
+. *ticket-monster-test-int*
+
+=== *systest* environment
+
+==== Review *systest* Images
+
+==== Start *systest* containers
 
 . cd $PROJECT_HOME/demo
 . docker-compose -f systest.yml up -d
@@ -200,13 +288,19 @@ http://<address_of_systest_machine>:18080/ticket-monster
 +
 image::doc/images/tmonsterhome.png[]
 
-== *prod* environemnt
+=== *prod* environment
 
 == Ticket Monster Delivery Pipeline
 
 === Overview
+*TO-DO*
 
 === Start *ticket-monster-build*
+The Jenkins `Delivery Pipeline` can be manually started via the Jenkins Dashboard.
+
+At the far right of the dashboard, click the green start button corresponding to the `ticket-monster-release` job.
+
+image::doc/images/startjob.png[]
 
 === Real-World Considerations
 
