@@ -1,4 +1,4 @@
-= *continuous-delivery-javaee-container-src*
+= *Continuous Delivery with Docker Containers & Java EE*
 
 :data-uri:
 :toc: manual
@@ -10,23 +10,72 @@
 :supportportal: link:https://access.redhat.com/support[Red Hat Support Portal]
 :jbossdemocentral: link:https://www.gitub.com/jbossdemocentral/continuos-delivery-demo-app[jbossdemocentral]
 :markusblog: link:http://blog.eisele.net/2015/04/continuous-delivery-with-docker.html[Markus' Blog]
+:paas: link:https://www.openshift.com[paas]
 
 This repository contains the source code and step-by-step instructions needed to reproduce the {webinar}.
 
 == Overview
 
 === *Goals*
-Discussed in detail in {markusblog}.
+This demo sets up a complete Continuous Delivery environment using Docker containers.
+
+image::images/cd-openshift.png[]
+
+This demo uses {dcompose} as a simple orchestration tool.
+Docker is used for simplicity in this demo and is not essential to the delivery pipeline.
+
+More details discused in {markusblog}.
+
+=== Infrastructure
+This demo uses various components to create a delivery pipeline.
+Jenkins, Nexus and Sonar run in their own Docker containers while GitHub is used as an external Git-based source repository.
+
+. *Jenkins*
++
+Description: continuous delivery orchestration engine
++
+Address: http://DOCKER_HOST:8080/jenkins
+
+. *Sonatype Nexus*
++
+Description: artifact repository for archiving release binaries
++
+Address: http://DOCKER_HOST:8081/nexus
+
+. *SonarQube*
++
+Description: static code analysis engine extracting various quality metrics from the code
++
+Address: http://DOCKER_HOST:9000
+
+. *GitHub*
++
+Description: source repository hosting the ticket-monster Java application
++
+Address: https://github.com/jbossdemocentral/continuous-delivery-demo-app.git
+
+[NOTE]
+
+If running boot2docker on Mac OSX, DOCKER_HOST is the ip of boot2docker virtual machine
+
+=== Delivery Pipeline
+The delivery pipeline in this demo is divided into five phases each containing a number of activities (jobs) that need to succeed in order to promote the artifact to the next phase.
+Each change in the application is a potential production release according to Continuous Delivery principles and can go in production if it successfully passes through all the phases in the pipeline.
+
+
+. Build: compilation and unit test, integration tests and static code analysis
+. Dev: release to Nexus, create release tag in Git, deploy to DEV server and run functional tests
+. System Test: deploy to System Test server and run system tests
+. Perf Test: deploy to Performance Test server and run performance tests
+. Pre Production (Stage): deploy to Pre-Production server
+
+image::images/delivery-pipeline.png[]
+
 
 === *Ticket Monster* JEE project
+Continuous Delivery from dev -> prod in a Docker environment will be demonstrated in this exercise using the {ticketmonster} JEE application.
 
 The {ticketmonster} JEE project is a moderately complex application that demonstrates how to build modern applications using JBoss web technologies.
-
-Continouos Delivery from dev -> prod in a Docker environment will be demonstrated using the ticket-monster JEE application.
-
-=== Deployment Diagram
-
-*TO-DO*
 
 == Pre-requisites
 
@@ -43,7 +92,7 @@ The machines can run locally or as VMs in a cloud environment.
 +
 You must have a valid _Red Hat Network (RHN) subscription with entitlements that allow for:
 
-.. management of _rhel-server-7_ operating systems
+.. management of _rhel-server-7_ operating systems.
 .. download of supported Red Hat JBoss middleware software.
 . *Operating System*
 +
@@ -64,10 +113,11 @@ Ensure that `docker` is installed and running on the operating system of all mac
 . *{dcompose}*
 +
 `docker-compose` is a handy utility for defining and running complex applications with Docker.
-It is not a {{paas}}.
+It is not a feature complete {paas}.
 However, it does a nice job of facilitating the use of multiple Docker containers in this `Continuous Delivery` exercise.
 
-== `ticket-monster` project
+== Instructions
+=== `ticket-monster` project
 Continouos Delivery from dev -> prod is demonstrated using the {ticketmonster} JEE application.
 
 During the `release` stage, the release version of the `ticket-monster` project is updated (ie: 2.6.49-SNAPSHOT -> 2.6.49.Final).
@@ -79,7 +129,7 @@ This git repository is public (any git client can clone the project) however dir
 You'll want to utilize a version of the `ticket-monster` application that you can modify.
 
 [[forkticketmonster]]
-=== Fork `ticket-monster` project
+==== Fork `ticket-monster` project
 
 
 You'll want to fork the `ticket-monster` project using your own github account:
@@ -88,26 +138,28 @@ You'll want to fork the `ticket-monster` project using your own github account:
 . Authenticate into gitub.
 . On the far right, click `Fork`
 +
-image::doc/images/forkettmaster.png[]
+image::images/forkettmaster.png[]
 . After a few seconds, a fork of the `ticket-monster` app will appear in your own github account.
 . Make note of the clone URL to your forked repository.
 You'll make use of this URL through this exercise.
 
-=== Modify `ticket-monster` pom.xml
+==== Modify `ticket-monster` pom.xml
 The `pom.xml of the `ticket-monster` project includes references to the original git repository in `jbossdemocentral` .
 These references should be changed.
 
 . Clone the forked `ticket-monster` project to your local workstation.
 . Using your favorite text editor, edit the following section of:  `continuous-delivery-demo-app/pom.xml`:
 +
-image::doc/images/pom.png[]
+image::images/pom.png[]
 +
 In particular, change all of the URLs in the `scm` section such that they reference your forked repository.
 . Commit and push the change to your forked git repository.
 
-== Build and Start Docker Containers
+=== Build and Start Docker Containers
 
-==== Clone this project
+===== Clone this project
+This project needs to be cloned on all machines (`dev`, `systest` and `prod`) used in this project.
+
 ----
 git clone https://github.com/jbossdemocentral/continuous-delivery-javaee-container-src.git
 ----
@@ -115,21 +167,16 @@ git clone https://github.com/jbossdemocentral/continuous-delivery-javaee-contain
 Doing so creates a directory on your local workstation called:  _continuous-delivery-javaee-container-src_.
 
 [NOTE]
-For the purpose of the instructions in this exercise, the directory created from having cloned this project will be referred to as: *$PROJECT_HOME*.
+For the remainder of these instructions, the directory created from having cloned this project will be referred to as: *$PROJECT_HOME*.
 
+==== `dev-env` environment
 
 [[baseimages]]
-=== *baseimages*
+==== Build `dev-env` images
 
-==== Build *baseimages*
-Docker images from this project need to be built prior to the creation of docker containers that support our `dev-env`, `systest` and `prod` environments.
+Docker _images_ from this project need to be built prior to the creation of docker _containers_.
 
 Docker-compose is used to build the Docker images included in this project.
-
-Docker-compose is a convenient tool however one limitation is that it’s not smart enough to build images in the order specified in the project's docker-compose yaml config.
-Instead, docker-compose attempts to build images in alphabetic order.
-
-This limitation can be overcome by explicitly specifying the order in which to build the project's images.
 
 . cd $PROJECT_HOME/demo
 . add *jboss-eap-6.4*
@@ -149,15 +196,30 @@ Later in this exercise, the public key of this key pair will be copied to the ho
 .. execute: `ssh-keygen -q -f images/jenkins-ci/config/.ssh/id_rsa -t rsa -N ''`
 +
 The key pair will be created (with no passphrase) in the directory: `images/jenkins-ci/config/.ssh`
-. docker-compose -f baseimages.yml build base
+. Build the project's _base_ image.
 +
-Build the project's _base_ image first.
+One limitation of _docker_compose_ is that it’s not smart enough to build images in the order specified in the project's docker-compose yaml config.
+Instead, docker-compose attempts to build images in alphabetic order.
+This becomes a problem when building the images defined in `$PROJECT_HOME/demo/baseimages.yml`.
++
+This docker-compose limitation can be overcome by explicitly specifying the order in which to build the project's images.
++
+execute:
++
+-----
+docker-compose -f baseimages.yml build base
+-----
 +
 [NOTE]
 Depending on network bandwidth, expect this step to take a few minutes while the RHEL7 base docker image is downloaded and updated.
-. docker-compose -f baseimages.yml build
+
+. Build all other images specified in the project's `baseimages.yml` config file.
 +
-Build all other images specified in the project's `baseimages.yml` config file.
+execute:
++
+-----
+docker-compose -f baseimages.yml build
+-----
 +
 [NOTE]
 Expect this step to take longer than the previous.
@@ -167,20 +229,10 @@ Several products (such as Jenkins) are downloaded.
 This command should provide a listing of all of the images that have been built thus far.
 The output should appear similar to the following:
 +
-image::doc/images/baseimages.png[]
+image::images/baseimages.png[]
 
 
-=== *dev-env* environment
-
-
-==== Review *dev-env* Images
-===== *Sonar*
-===== *Nexus*
-===== *Jenkins*
-
-
-
-==== Start *dev-env* containers
+==== Start `dev-env` containers
 
 . cd $PROJECT_HOME/demo
 . docker-compose -f dev-env.yml up -d
@@ -205,7 +257,7 @@ Accessible via your browser at the following URL:
 http://<address_of_dev_machine>:9080/jenkins
 -----
 +
-image::doc/images/jenkinshome.png[]
+image::images/jenkinshome.png[]
 .. *demo_nexus_1*
 +
 Accessible via your browser at the following URL:
@@ -214,7 +266,7 @@ Accessible via your browser at the following URL:
 http://<address_of_dev_machine>:8081/nexus
 -----
 +
-image::doc/images/nexushomepage.png[]
+image::images/nexushomepage.png[]
 .. *demo_sonar_1*
 +
 Accessible via your browser at the following URL:
@@ -223,11 +275,11 @@ Accessible via your browser at the following URL:
 http://<address_of_dev_machine>:9000
 -----
 +
-image::doc/images/sonar.png[]
+image::images/sonar.png[]
 
 ==== Modify Jenkins Jobs with new `ticket-monster` URL
-Several of the jobs that come pre-configured in the `jenkins-demo-1` container reference the source code to the Red Hat managed `ticket-monster` application in github.
-All of these jenkins jobs should be using your forked repo as discussed in the section: <<forkticketmonster>>.
+Several of the Jenkins jobs that come pre-configured in the `jenkins-demo-1` container reference URL to the `ticket-monster` application in `github/jbossdemocentral`.
+All of these jenkins jobs should instead reference the URL of your forked `ticket-monster` app previously created in the section: <<forkticketmonster>>.
 
 Of particular importance is the Jenkins job: `ticket-monster-release`.
 The `ticket-monster-release` job is responsible for creating a release of the latest `ticket-monster` application.
@@ -240,13 +292,13 @@ Using the clone URL of your forked `ticket-monster` project, modify the Jenkins 
 . In your browser, navigate to the jenkins dashboard.
 . Click the `ticket-monster-analysis link`
 +
-image::doc/images/tmonsteranalysis.png[]
+image::images/tmonsteranalysis.png[]
 . On the left panel, click `Configure`
 . Scroll down to the `Source Code Management` section
 . `Git` should already be selected as the repository type.
 . Replace the value of the `Repository URL` with the URL of your forked `ticket-monster` repository in github.
 +
-image::doc/images/scm.png[]
+image::images/scm.png[]
 . Under the `Credentials` text box, click the `Add` button
 . In the `Add Credentials` pop-up, populate with your preferred mechanism to authenticate into gihub (ie:  username/password or ssh keys)
 . Scroll to the bottom and click `Save`
@@ -257,11 +309,14 @@ Repeat the above procedure for the following additional Jenkins jobs:
 . *ticket-monster-release*
 . *ticket-monster-test-int*
 
-=== *systest* environment
+==== `systest` environment
 
-==== Review *systest* Images
+===== Overview
+The `systest` environment consists of a single Docker container running JBoss EAP 6.4.
+This infrastructure will be used as the test environment.
 
-==== Start *systest* containers
+===== Start *systest* containers
+Execute the following steps in your `systest` machine.
 
 . cd $PROJECT_HOME/demo
 . docker-compose -f systest.yml up -d
@@ -279,33 +334,33 @@ http://<address_of_systest_machine>:19990
 +
 Authenticate using a userId/password of:  `admin / admin-123`
 +
-image::doc/images/eapmgmt.png[]
+image::images/eapmgmt.png[]
 .. *Ticket Monster Homepage*
 +
 -----
 http://<address_of_systest_machine>:18080/ticket-monster
 -----
 +
-image::doc/images/tmonsterhome.png[]
+image::images/tmonsterhome.png[width="50%"]
 
-=== *prod* environment
+==== `prod` environment
+The production environment used in this project is identical to `systest`.
 
-== Ticket Monster Delivery Pipeline
+On the production machine, start its containers in the same manner as was done previously in the `systest` machine with one change:
+execute `docker-compose -f prod.yml up -d`
 
-=== Overview
-*TO-DO*
 
-=== Start *ticket-monster-build*
+=== Start `ticket-monster-build`
+After all images are built and containers started on all enviornments (dev, systest and prod), continuous delivery of a JEE application in a Docker environment can be demonstrated.
+
 The Jenkins `Delivery Pipeline` can be manually started via the Jenkins Dashboard.
 
 At the far right of the dashboard, click the green start button corresponding to the `ticket-monster-release` job.
 
-image::doc/images/startjob.png[]
+image::images/startjob.png[]
 
-=== Real-World Considerations
+== Real-World Considerations
 
 ==== *ticket-monster-build* initiation
 ==== Email set-up
 ==== Human Task: systest -> prod
-
-== Conclusion
