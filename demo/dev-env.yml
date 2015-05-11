@@ -11,5 +11,7 @@ jenkins:
   links:
      - nexus:nexus
      - sonar:sonar
+  volumes_from:
+     - demo_storage
   ports:
     - "9080:9080"

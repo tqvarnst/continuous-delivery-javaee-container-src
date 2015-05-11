@@ -12,7 +12,7 @@ MAINTAINER Thomas Qvarnstrom <tqvarnst@redhat.com>
 ADD config/.ssh /var/lib/jenkins/.ssh
 RUN chown -R jenkins:jenkins /var/lib/jenkins/.ssh/
 RUN chmod 755 /var/lib/jenkins/.ssh/
-RUN chmod 600 /var/lib/jenkins/.ssh/id_rsa*
+RUN chmod 600 /var/lib/jenkins/.ssh/*
 
 # Install Plugins
 RUN wget -O /var/lib/jenkins/plugins/build-pipeline-plugin.hpi 		http://updates.jenkins-ci.org/download/plugins/build-pipeline-plugin/1.4.3/build-pipeline-plugin.hpi

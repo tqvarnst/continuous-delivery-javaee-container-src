@@ -1,3 +1,6 @@
+storage:
+  build: images/storage
+
 base:
   build: images/base
 
