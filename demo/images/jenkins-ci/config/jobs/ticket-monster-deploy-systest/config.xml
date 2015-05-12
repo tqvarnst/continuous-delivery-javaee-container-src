@@ -1,7 +1,10 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <project>
   <actions/>
-  <description></description>
+  <description>
+    Jenkins job that uses secure copy network protocol to push a newly released ticket-monster web archive to the systest host environment.
+    Subsequently, the JEE docker container on the systest host environment is re-built using this latest ticket-monster web archive.
+  </description>
   <keepDependencies>false</keepDependencies>
   <properties>
     <hudson.model.ParametersDefinitionProperty>

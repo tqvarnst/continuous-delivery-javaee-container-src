@@ -1,7 +1,9 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <maven2-moduleset plugin="maven-plugin@2.7.1">
   <actions/>
-  <description></description>
+  <description>
+    Jenkins job that leverages the Maven Release plugin to create a release of the ticket-monster web app.
+  </description>
   <keepDependencies>false</keepDependencies>
   <properties>
     <se.diabol.jenkins.pipeline.PipelineProperty plugin="delivery-pipeline-plugin@0.8.6">
