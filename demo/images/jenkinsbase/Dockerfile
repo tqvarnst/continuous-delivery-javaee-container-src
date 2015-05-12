@@ -42,6 +42,8 @@ RUN yum -y install git
 ############################################
 # Jenkins settings 
 ADD config.xml /var/lib/jenkins/config.xml
+RUN mkdir /var/lib/jenkins/.m2
+ADD settings.xml /var/lib/jenkins/.m2/settings.xml
 
 # Maven
 ADD hudson.tasks.Maven.xml /var/lib/jenkins/hudson.tasks.Maven.xml
