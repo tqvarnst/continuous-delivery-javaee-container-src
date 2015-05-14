@@ -11,6 +11,7 @@
 :jbossdemocentral: link:https://www.gitub.com/jbossdemocentral/continuos-delivery-demo-app[jbossdemocentral]
 :markusblog: link:http://blog.eisele.net/2015/04/continuous-delivery-with-docker.html[Markus' Blog]
 :paas: link:https://www.openshift.com[paas]
+:mvnreleaseplugin: link:http://maven.apache.org/maven-release/maven-release-plugin/[Maven Release Plugin]
 
 This repository contains the source code and step-by-step instructions needed to reproduce the {webinar}.
 
@@ -77,6 +78,7 @@ Continuous Delivery from dev -> prod in a Docker environment will be demonstrate
 
 The {ticketmonster} JEE project is a moderately complex application that demonstrates how to build modern applications using JBoss web technologies.
 
+[[prereqs]]
 == Pre-requisites
 
 . *Network Bandwidth*
@@ -117,6 +119,77 @@ It is not a feature complete {paas}.
 However, it does a nice job of facilitating the use of multiple Docker containers in this `Continuous Delivery` exercise.
 
 == Instructions
+
+=== Start 3 host environments
+This lab requires the following 3 machines as per the specifications listed in the <<prereqs>> section:
+
+. `dev`
+. `systest`
+. `prod`
+
+These hosts may be either virtual machines or bare-metal.
+They should be on a network that allows TCP assessibility between them.
+
+=== Clone this project
+This project needs to be cloned on all machines (`dev`, `systest` and `prod`) used in this project.
+
+----
+git clone https://github.com/jbossdemocentral/continuous-delivery-javaee-container-src.git
+----
+
+Doing so creates a directory on your local workstation called:  _continuous-delivery-javaee-container-src_.
+
+[NOTE]
+For the remainder of these instructions, the directory created from having cloned this project will be referred to as: *$PROJECT_HOME*.
+
+=== ssh key pair
+
+==== Overview
+In this demo, SSH keys are used for the following purposes:
+
+. *Authentication to Github*
++
+This lab makes use of the {mvnreleaseplugin}.
+One of the operations attempted by the Maven Release Plugin will be to push changes to your project repository in Github.
+SSH kays will be shared between the Maven Release Plugin and your Github account to allow maven to push these commits.
+
+. *ssh connections to `systest` and `prod` hosts*
++
+This lab makes use of Jenkins jobs that push releases from your Jenkins container to your `systest` and `prod` host machines.
+SSH key pair authentication is used to allow for creation of `ssh / scp` connections between lab environments.
+
+==== ssh key pair creation
+In this step, an ssh key pair will be created in your `dev` machine.
+
+.. cd $PROJECT_HOME/demo
+.. execute: `ssh-keygen -q -f images/jenkins-ci/config/.ssh/id_rsa -t rsa -N ''`
++
+The key pair will be created (with no passphrase) in the directory: `$PROJECT_HOME/demo/images/jenkins-ci/config/.ssh`
+
+==== ssh key pair distribution
+
+===== Add public key to Github
+To allow for authentication between the `Maven Release Plugin` and Github, execute the following:
+
+. Authenticate into Github
+. Navigate to Github account settings
+. Click `SSH Keys -> Add SSH Key`
++
+image::images/githubssh.png[width="70%"]
++
+. Copy and paste the contents of your previously created public key to the `key` text-box in Github.
++
+Your public key should be located at: `PROJECT_HOME/demo/images/jenkins-ci/config/.ssh/id_rsa.pub`.
+. Click the `AddKey` button
+
+===== Add public key to `systest` and `prod` hosts
+
+Add the previously created public key to the following file of the `root` operating system user of both the `systest` and `prod` machines:
+
+-----
+$HOME/.ssh/authorized_keys
+-----
+
 === `ticket-monster` project
 Continouos Delivery from dev -> prod is demonstrated using the {ticketmonster} JEE application.
 
@@ -155,21 +228,7 @@ image::images/pom.png[]
 In particular, change all of the URLs in the `scm` section such that they reference your forked repository.
 . Commit and push the change to your forked git repository.
 
-=== Build and Start Docker Containers
-
-===== Clone this project
-This project needs to be cloned on all machines (`dev`, `systest` and `prod`) used in this project.
-
-----
-git clone https://github.com/jbossdemocentral/continuous-delivery-javaee-container-src.git
-----
-
-Doing so creates a directory on your local workstation called:  _continuous-delivery-javaee-container-src_.
-
-[NOTE]
-For the remainder of these instructions, the directory created from having cloned this project will be referred to as: *$PROJECT_HOME*.
-
-==== `dev-env` environment
+=== Build and start `dev-env`
 
 [[baseimages]]
 ==== Build `dev-env` images
@@ -183,19 +242,7 @@ Docker-compose is used to build the Docker images included in this project.
 .. Use your _RHN_ userId to access the {supportportal}.
 .. Download *jboss-eap-6.4.0.zip*
 .. Copy *jboss-eap-6.4.0.zip* to the following directory on the host machine:  `$PROJECT_HOME/demo/images/appserverbase/resources`
-. Generate ssh key pair
-+
-SSH keys are used to create ssh and scp connections between the `demo_jenkins_1` container and the host operating systems where the `systest` and `prod` containers are running.
-These connections are used to automatically push JEE artifacts from `demo_jenkins_1` to those other environments.
-+
-In this step, an ssh key pair will be created.
-This ssh key pair will be automatically added to the `demo_jenkins_1` container when built.
-Later in this exercise, the public key of this key pair will be copied to the host operating systems where the `systest` and `prod` containers are running.
 
-.. cd $PROJECT_HOME/demo
-.. execute: `ssh-keygen -q -f images/jenkins-ci/config/.ssh/id_rsa -t rsa -N ''`
-+
-The key pair will be created (with no passphrase) in the directory: `images/jenkins-ci/config/.ssh`
 . Build the project's _base_ image.
 +
 One limitation of _docker_compose_ is that it’s not smart enough to build images in the order specified in the project's docker-compose yaml config.
@@ -235,6 +282,7 @@ image::images/baseimages.png[]
 ==== Start `dev-env` containers
 
 . cd $PROJECT_HOME/demo
+. docker run -d --name="demo_storage" demo_storage
 . docker-compose -f dev-env.yml up -d
 +
 [NOTE]
@@ -309,7 +357,7 @@ Repeat the above procedure for the following additional Jenkins jobs:
 . *ticket-monster-release*
 . *ticket-monster-test-int*
 
-==== `systest` environment
+=== Build and Start `systest`
 
 ===== Overview
 The `systest` environment consists of a single Docker container running JBoss EAP 6.4.
@@ -343,14 +391,14 @@ http://<address_of_systest_machine>:18080/ticket-monster
 +
 image::images/tmonsterhome.png[width="50%"]
 
-==== `prod` environment
+=== Build and Start `prod`
 The production environment used in this project is identical to `systest`.
 
 On the production machine, start its containers in the same manner as was done previously in the `systest` machine with one change:
 execute `docker-compose -f prod.yml up -d`
 
 
-=== Start `ticket-monster-build`
+=== Start `ticket-monster-build` job
 After all images are built and containers started on all enviornments (dev, systest and prod), continuous delivery of a JEE application in a Docker environment can be demonstrated.
 
 The Jenkins `Delivery Pipeline` can be manually started via the Jenkins Dashboard.
