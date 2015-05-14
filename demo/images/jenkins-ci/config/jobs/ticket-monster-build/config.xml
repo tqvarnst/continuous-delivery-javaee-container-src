@@ -1,7 +1,11 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <maven2-moduleset plugin="maven-plugin@2.5">
   <actions/>
-  <description></description>
+  <description>
+    Jenkins job that clones continuous-delivery-demo-app, compiles its content and creates a web archive (*.war) package.
+    Ensure that the git URL listed in this job references a repository that is readable.
+    Also, this same git repo should be writable by the jenkins operating system user (otherwise, downstream jobs in the delivery pipeline will fail due to the inability to commit to this repo).
+  </description>
   <keepDependencies>false</keepDependencies>
   <properties>
     <se.diabol.jenkins.pipeline.PipelineProperty plugin="delivery-pipeline-plugin@0.8.6">
